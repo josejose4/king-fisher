@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GO / NO-GO — Bondi Beach Spearfishing Conditions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 48 48" fill="none">
+        <path d="M4 30c5 0 5-4 10-4s5 4 10 4 5-4 10-4 5 4 10 4" stroke="#987e20" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M4 38c5 0 5-4 10-4s5 4 10 4 5-4 10-4 5 4 10 4" stroke="#6e6438" stroke-width="2.4" stroke-linecap="round" opacity=".8"/>
+        <path d="M24 6l3.2 9.4L24 24l-3.2-8.6L24 6z" fill="#987e20"/>
+        <circle cx="24" cy="24" r="2.4" fill="#bfb170"/>
+      </svg>
+      <div class="title">
+        <h1>GO / NO-GO</h1>
+        <p id="loc-line">Bondi Beach · freediving + spearo conditions</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span class="pill" id="updated-pill">SOURCE <b id="source-tag">DEMO</b></span>
+      <button class="ghost" id="open-settings">⚙ MISSION CONFIG</button>
+    </div>
+  </header>
+
+  <div class="live-banner" id="live-banner"></div>
+
+  <!-- HERO VERDICT -->
+  <section class="hero">
+    <div class="gauge">
+      <svg width="240" height="240" viewBox="0 0 240 240">
+        <circle cx="120" cy="120" r="104" fill="none" stroke="rgba(148,128,44,.12)" stroke-width="16"/>
+        <circle id="gauge-arc" cx="120" cy="120" r="104" fill="none" stroke="#987e20" stroke-width="16"
+          stroke-linecap="round" stroke-dasharray="653" stroke-dashoffset="653"
+          style="transition:stroke-dashoffset 1.1s cubic-bezier(.2,.8,.2,1), stroke .6s"/>
+      </svg>
+      <div class="center">
+        <div class="score" id="score-num">--</div>
+        <div class="of">/ 100 SCORE</div>
+      </div>
+    </div>
+    <div>
+      <div class="verdict-word" id="verdict-word">ASSESSING…</div>
+      <div class="verdict-flag" id="verdict-flag"></div>
+      <div class="limiting" id="limiting"></div>
+    </div>
+  </section>
+
+  <!-- FACTOR BREAKDOWN -->
+  <div class="section-label">Operational briefing</div>
+  <div class="grid" id="factor-grid"></div>
+
+  <!-- KINGFISH INTEL -->
+  <div class="section-label">Kingfish encounter likelihood</div>
+  <div class="kf-panel" id="kf-panel"></div>
+
+  <!-- HOURLY TIMELINE -->
+  <div class="section-label">Ops window — daylight hours</div>
+  <div class="timeline">
+    <div class="tl-head">
+      <div class="tl-head-label">DIVE SCORE BY HOUR</div>
+      <div class="tl-best" id="best-window">—</div>
+    </div>
+    <div class="tl-bars" id="tl-bars"></div>
+  </div>
+
+  <footer>
+    <div id="sun-line"></div>
+    Conditions scored for shore/boat freediving at Bondi Beach and surrounding Sydney east coast breaks. This is a planning aid, not a
+    safety guarantee — always check the <a href="http://www.bom.gov.au/nsw/warnings/" target="_blank" rel="noopener">BoM marine warnings</a>,
+    dive with a buddy, and make the final call at the water's edge.<br>
+    Live data via the <a href="https://www.willyweather.com.au/info/api.html" target="_blank" rel="noopener">WillyWeather API</a>
+    (proxied — see settings). Location IDs: <a href="https://oztides.mltindustries.com.au/" target="_blank" rel="noopener">find yours here</a>.
+  </footer>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="scrim" id="scrim">
+  <div class="modal">
+    <h2>Mission Config</h2>
+    <p class="lead">Demo runs on baked-in sample data so you can see the app work. For live readings, point it at your
+      WillyWeather proxy (a 15-line serverless function — your API key stays server-side, never in this page).</p>
+    <div class="toggle-row">
+      <button id="mode-demo" class="active" onclick="setMode('demo')">DEMO DATA</button>
+      <button id="mode-live" onclick="setMode('live')">LIVE (PROXY)</button>
+    </div>
+    <div class="field">
+      <label>Proxy base URL</label>
+      <input id="in-proxy" placeholder="https://your-worker.workers.dev">
+      <div class="hint">Your deployed proxy. It receives the location ID + forecast list, adds your secret key, and forwards to WillyWeather. Code is in the chat that generated this file.</div>
+    </div>
+    <div class="field">
+      <label>Location ID</label>
+      <select id="in-loc">
+        <option value="16636">Bondi Beach (16636 — verify via WillyWeather)</option>
+        <option value="4950">Sydney (4950)</option>
+        <option value="custom">Custom ID…</option>
+      </select>
+      <input id="in-loc-custom" placeholder="e.g. 1234" style="margin-top:8px;display:none">
+      <div class="hint">WillyWeather uses numeric location IDs, not names. Pick a coastal break with swell + tide data. <a href="https://oztides.mltindustries.com.au/" target="_blank" rel="noopener">Search IDs →</a></div>
+    </div>
+    <div class="status-line" id="status-line"></div>
+    <div class="actions">
+      <button class="btn-primary" id="apply-btn" onclick="applySettings()">Apply &amp; refresh</button>
+      <button class="btn-close" onclick="closeModal()">Close</button>
+    </div>
+    <div class="safety">Note: hitting WillyWeather directly from this page (no proxy) will fail — browsers block it (CORS) and it would leak your key. The proxy fixes both.</div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   STATE
+============================================================ */
+const KN_PER_KMH = 0.539957;       // km/h -> knots
+const state = {
+  mode: 'demo',
+  proxy: '',
+  locationId: '4950',
+  locationName: 'Sydney',
+};
+
+/* ============================================================
+   SCORING ENGINE  (the actual "is it diveable" logic)
+   Each sub-score returns 0..1. Weighted sum -> 0..100.
+   Tuned for underwater VISIBILITY + safe entry/exit on an
+   east-facing coast. Comments explain the "why".
+============================================================ */
+// Weights tuned for spearfishing: swell + wind dominate, direction matters at Bondi
+const WEIGHTS = { swellHeight:30, windSpeed:18, rain:16, swellDir:12, swellPeriod:10, tide:8, windDir:4, waterTemp:2 };
+
+const clamp = (x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+
+// Spearos want FLAT. Under 0.4 m = ideal. Over 1.8 m = no-go.
+function scoreSwellHeight(h){ return h<=0.4 ? 1 : clamp(1-(h-0.4)/1.4); }
+
+// Wind swell (<8 s) = murky and messy. Long-period groundswell (12–16 s) = clean.
+function scoreSwellPeriod(p){
+  if(p>=12 && p<=16) return 1;
+  if(p>16) return 0.88;
+  if(p>=8) return clamp(0.45+(p-8)/4*0.55);
+  return clamp(0.05+(p-4)/4*0.40);
+}
+
+// Glassy = ideal. 5 kn = threshold; above that surface chop kills fish-spotting.
+function scoreWindSpeed(kn){ return kn<=5 ? 1 : clamp(1-(kn-5)/13); }
+
+// Offshore (W sector) = smooth face. Onshore (E/NE) = chop and murk.
+function scoreWindDir(deg){
+  const d=((deg%360)+360)%360;
+  if(d>=225 && d<=315) return 1;
+  if(d>=45  && d<=135) return 0.30;
+  return 0.60;
+}
+
+// Slack water = least current, best viz. High tide pushes in clean ocean water.
+function scoreTide(now, tides){
+  if(!tides || !tides.length) return 0.7;
+  let nearest=Infinity, isHigh=false;
+  for(const t of tides){
+    const diff=Math.abs(t.time-now)/60000;
+    if(diff<nearest){ nearest=diff; isHigh=(t.type==='high'); }
+  }
+  let s = nearest<45 ? 1 : nearest<120 ? 0.75 : 0.6;
+  if(isHigh) s=Math.min(1, s+0.10);
+  return s;
+}
+
+// Rain = runoff = murk. Even a 30 % chance meaningfully degrades viz.
+function scoreRain(prob){ return clamp(1-(prob/100)*1.3); }
+
+// Comfort only — wetsuit choice, low weight.
+function scoreWaterTemp(c){
+  if(c>=18 && c<=24) return 1;
+  if(c<18) return clamp(0.5+(c-12)/6*0.5);
+  return 0.9;
+}
+
+function computeScore(d, now){
+  const subs = {
+    swellHeight: scoreSwellHeight(d.swellHeight),
+    swellPeriod: scoreSwellPeriod(d.swellPeriod),
+    windSpeed:   scoreWindSpeed(d.windKn),
+    windDir:     scoreWindDir(d.windDeg),
+    swellDir:    scoreSwellDir(d.swellDeg),
+    tide:        scoreTide(now, d.tides),
+    rain:        scoreRain(d.rainProb),
+    waterTemp:   scoreWaterTemp(d.waterTemp),
+  };
+  let total=0, wsum=0;
+  for(const k in WEIGHTS){ total += subs[k]*WEIGHTS[k]; wsum += WEIGHTS[k]; }
+  return { score: Math.round(total/wsum*100), subs };
+}
+
+/* Bondi faces east. S–SSE swell wraps around Ben Buckler cleanly.
+   NE/N is direct onshore and kills viz. */
+function scoreSwellDir(deg){
+  const d=((deg%360)+360)%360;
+  if(d>=155 && d<=185) return 1.00;  // S–SSE: gold standard for Bondi
+  if(d>=130 && d<155)  return 0.85;  // SE: very good
+  if(d>185  && d<=215) return 0.68;  // SSW: smaller, decent
+  if(d>=90  && d<130)  return 0.30;  // E–ESE: direct, poor viz
+  if(d>=215 && d<=270) return 0.38;  // SW: sheltered, inconsistent
+  return 0.08;                       // N/NE: worst — direct onshore
+}
+
+// hourly: lighter score for the timeline (uses what varies hour-to-hour)
+function hourlyScore(h, now){
+  const sd = h.swellDeg != null ? h.swellDeg : 170;
+  const s = scoreSwellHeight(h.swellHeight)*0.30
+          + scoreWindSpeed(h.windKn)       *0.19
+          + scoreRain(h.rainProb)          *0.17
+          + scoreSwellDir(sd)              *0.13
+          + scoreSwellPeriod(h.swellPeriod)*0.10
+          + scoreTide(h.time, h.tides)     *0.08
+          + scoreWindDir(h.windDeg)        *0.03;
+  return Math.round(s*100);
+}
+
+/* ============================================================
+   RENDERING
+============================================================ */
+function verdictFor(score){
+  if(score>=75) return {word:'GO',    color:'var(--go)',     sub:"Conditions nominal. All factors green — proceed to dive site.",                    flag:'CLEARANCE GRANTED'};
+  if(score>=50) return {word:'MAYBE', color:'var(--caution)',sub:"Mixed reading. Conditions marginal — select your entry point and have an abort plan.", flag:'STANDBY — ASSESS ON SITE'};
+  return             {word:'NO-GO', color:'var(--nogo)',   sub:"Conditions adverse. Mission abort recommended — stand down and await improvement.",    flag:'MISSION ABORT'};
+}
+function barColor(v){ return v>=0.7?'var(--go)':v>=0.45?'var(--caution)':'var(--nogo)'; }
+function fmtDir(deg){ const dirs=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+  return dirs[Math.round(((deg%360)/22.5))%16]; }
+function fmtTime(ms){ return new Date(ms).toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit',hour12:true}); }
+
+function render(d, history){
+  const now = d.now;
+  const {score, subs} = computeScore(d, now);
+  const v = verdictFor(score);
+
+  // gauge
+  const arc=document.getElementById('gauge-arc');
+  const C=653;
+  arc.style.strokeDashoffset = C - C*(score/100);
+  arc.style.stroke = v.color;
+  document.getElementById('score-num').textContent = score;
+  document.getElementById('verdict-word').textContent = v.word;
+  document.getElementById('verdict-word').style.color = v.color;
+  const flag=document.getElementById('verdict-flag');
+  flag.textContent = '◉ '+v.flag;
+  flag.style.color=v.color;
+  flag.style.background='color-mix(in srgb,'+v.color+' 12%, transparent)';
+  flag.style.border='1px solid color-mix(in srgb,'+v.color+' 30%, transparent)';
+
+  // limiting factor — most penalised among the high-weight factors
+  const limitKeys=['swellHeight','windSpeed','swellDir','rain','swellPeriod','tide'];
+  let worstK=null, worstImpact=Infinity;
+  for(const k of limitKeys){ if(subs[k]<worstImpact){ worstImpact=subs[k]; worstK=k; } }
+  const limitLabels={swellHeight:'SWELL SIZE',windSpeed:'WIND SPEED',swellDir:'SWELL DIRECTION',rain:'RAIN / RUNOFF',swellPeriod:'SWELL PERIOD',tide:'TIDE TIMING'};
+  const lim=document.getElementById('limiting');
+  lim.style.display = worstImpact>0.78 ? 'none' : 'block';
+  if(worstImpact<=0.78) lim.innerHTML='Limiting factor: <b>'+limitLabels[worstK]+'</b>';
+
+  // factor cards — 6 key factors, compact (no explanatory text)
+  const wDir = scoreWindDir(d.windDeg);
+  const sDirDesc = subs.swellDir>=0.85?'favourable':subs.swellDir>=0.50?'cross-swell':'unfavourable';
+  const cards=[
+    {k:'swellHeight', lbl:'SWELL',     val:d.swellHeight.toFixed(1), unit:'m',  meta:fmtDir(d.swellDeg)+' · '+d.swellPeriod.toFixed(0)+'s'},
+    {k:'windSpeed',   lbl:'WIND',      val:Math.round(d.windKn),     unit:'kn', meta:fmtDir(d.windDeg)+' · '+(wDir>=1?'offshore':wDir<0.45?'onshore':'cross')},
+    {k:'swellDir',    lbl:'SWELL DIR', val:fmtDir(d.swellDeg),       unit:'',   meta:sDirDesc+' for Bondi'},
+    {k:'tide',        lbl:'TIDE',      val:nextTideLabel(d.tides,now).h, unit:'', meta:nextTideLabel(d.tides,now).m},
+    {k:'rain',        lbl:'RUNOFF',    val:Math.round(d.rainProb),   unit:'%',  meta:d.rainProb<15?'water clear':'murk risk'},
+    {k:'waterTemp',   lbl:'WATER',     val:d.waterTemp.toFixed(1),   unit:'°C', meta:wetsuitTip(d.waterTemp)},
+  ];
+  const grid=document.getElementById('factor-grid'); grid.innerHTML='';
+  cards.forEach((c,i)=>{
+    const q=subs[c.k];
+    const el=document.createElement('div'); el.className='card';
+    el.style.animation=`fadeUp .4s ${i*0.05}s both`;
+    el.innerHTML=`<div class="lbl">${c.lbl}</div>
+      <div class="val">${c.val}<small>${c.unit}</small></div>
+      <div class="meta">${c.meta}</div>
+      <div class="bar"><i style="width:${Math.round(q*100)}%;background:${barColor(q)}"></i></div>`;
+    // compact 3-day rain history in the runoff card
+    if(c.k==='rain' && history && history.length){
+      const dots=history.map(h=>{
+        const col=h.rainProb<20?'var(--go)':h.rainProb<50?'var(--caution)':'var(--nogo)';
+        return `<span class="rain-dot" style="background:${col}" title="${h.label}: ${Math.round(h.rainProb)}%"></span>`;
+      }).join('');
+      el.innerHTML+=`<div class="rain-hist">${dots}<span class="rain-hist-lbl">past 3 days</span></div>`;
+    }
+    grid.appendChild(el);
+  });
+
+  // timeline + kingfish
+  renderTimeline(d, now);
+  renderKingfishIntel(d, now);
+
+  // sun line
+  if(d.sunrise && d.sunset){
+    document.getElementById('sun-line').textContent =
+      `Daylight ${fmtTime(d.sunrise)} – ${fmtTime(d.sunset)}  ·  scored hours fall within this window.`;
+  }
+}
+
+function nextTideLabel(tides, now){
+  if(!tides||!tides.length) return {h:'—',m:'no tide data'};
+  const future=tides.filter(t=>t.time>=now).sort((a,b)=>a.time-b.time);
+  const t = future[0] || tides[tides.length-1];
+  return { h: (t.type==='high'?'High':'Low'), m: 'next at '+fmtTime(t.time)+' · '+t.height.toFixed(1)+'m' };
+}
+function wetsuitTip(c){ return c>=22?'2–3 mm, easy':c>=19?'3–5 mm':c>=16?'5 mm + hood':'7 mm, it bites'; }
+
+function renderTimeline(d, now){
+  const bars=document.getElementById('tl-bars'); bars.innerHTML='';
+  const hours=d.hourly.filter(h=>h.time>=d.sunrise && h.time<=d.sunset);
+  let best=null;
+  hours.forEach(h=>{
+    h._score = hourlyScore({...h, tides:d.tides}, h.time);
+    if(!best||h._score>best._score) best=h;
+  });
+  hours.forEach(h=>{
+    const col=document.createElement('div'); col.className='tl-col'+(best&&h.time===best.time?' best':'');
+    const c = h._score>=75?'var(--go)':h._score>=50?'var(--caution)':'var(--nogo)';
+    col.innerHTML=`<div class="col-bar" style="height:${Math.max(6,h._score)}%;background:${c}"></div>
+      <div class="hr">${new Date(h.time).getHours()}</div>`;
+    col.title=`${fmtTime(h.time)} — score ${h._score}`;
+    bars.appendChild(col);
+  });
+  document.getElementById('best-window').textContent =
+    best ? `▲ Best window ~${fmtTime(best.time)} (score ${best._score})` : '—';
+}
+
+
+/* ============================================================
+   KINGFISH INTEL — Yellowtail kingfish (Seriola lalandi)
+   at Bondi Beach. Seasonal presence + live conditions.
+============================================================ */
+
+// Monthly presence index at Bondi (0 = absent, 1 = prime).
+// Based on observed seasonal patterns and water temperature cycles.
+const KF_SEASON = [
+  0.95, // Jan — peak summer, kings everywhere
+  0.92, // Feb — peak
+  0.82, // Mar — water still warm, reliable hunting
+  0.62, // Apr — cooling, still present on structure
+  0.32, // May — tapering off, occasional surprise
+  0.08, // Jun — rare inshore, water too cold
+  0.04, // Jul — very rare
+  0.06, // Aug — first signs of warming cycle
+  0.22, // Sep — returning as water warms
+  0.48, // Oct — solid spring showing
+  0.72, // Nov — strong, pre-summer run begins
+  0.90, // Dec — season ramps up fast
+];
+
+function scoreKingfishLikelihood(d, now){
+  const month = new Date(now).getMonth();
+  const hour  = new Date(now).getHours();
+
+  // Season: monthly calendar fused with live water temp
+  const monthPres = KF_SEASON[month];
+  const tempScore = d.waterTemp >= 22 ? 1.00
+                  : d.waterTemp >= 19 ? 0.50 + (d.waterTemp-19)/3*0.50
+                  : d.waterTemp >= 17 ? (d.waterTemp-17)/2*0.30
+                  : 0.04;
+  const season = monthPres*0.55 + tempScore*0.45;
+
+  // Visibility — hunting kings requires seeing them first
+  const vizScore = scoreRain(d.rainProb)*0.55 + scoreSwellHeight(d.swellHeight)*0.45;
+
+  // Bait activity — moderate swell pushes schools onto the reef, kings follow
+  // Too flat: kings present but scattered; too big: murky and dangerous
+  const h = d.swellHeight;
+  const baitScore = h < 0.3   ? 0.58
+                  : h <= 1.0  ? 1.00
+                  : h <= 1.5  ? clamp(1-(h-1.0)/0.5*0.60)
+                  : 0.12;
+
+  // Time of day — dawn and dusk are feeding windows
+  const timeScore = (hour>=6&&hour<=9)||(hour>=16&&hour<=19) ? 1.00
+                  : (hour>=9&&hour<=12)||(hour>=14&&hour<=16) ? 0.55
+                  : hour>=12&&hour<=14                        ? 0.38
+                  : 0.18;
+
+  // Season gates everything — even perfect conditions can't overcome winter
+  const condScore = vizScore*0.45 + baitScore*0.32 + timeScore*0.23;
+  const raw = season * condScore;
+
+  return { score: Math.round(raw*100), season, vizScore, baitScore, timeScore, tempScore, month, hour };
+}
+
+function kingfishLabel(score){
+  if(score>=55) return{word:'PRIME',    color:'var(--go)',     sub:'Multiple factors aligning. Kings are in range and actively hunting — work the headland.'};
+  if(score>=32) return{word:'LIKELY',   color:'var(--go)',     sub:'Good encounter probability. Check Ben Buckler and the southern reef edges.'};
+  if(score>=14) return{word:'POSSIBLE', color:'var(--caution)',sub:'Kings may be around but conditions or season are limiting your odds.'};
+  return             {word:'UNLIKELY', color:'var(--nogo)',   sub:'Low probability. Water temp or season is the main constraint right now.'};
+}
+
+function renderKingfishIntel(d, now){
+  const panel = document.getElementById('kf-panel');
+  if(!panel) return;
+  const kf  = scoreKingfishLikelihood(d, now);
+  const lbl = kingfishLabel(kf.score);
+
+  const mShort = ['J','F','M','A','M','J','J','A','S','O','N','D'];
+
+  // Condition checks
+  const checks = [
+    {
+      label:'Water temp',
+      val:  d.waterTemp.toFixed(1)+'°C',
+      ok:   d.waterTemp >= 19,
+      note: d.waterTemp >= 22 ? 'prime' : d.waterTemp >= 19 ? 'marginal' : 'too cold',
+    },
+    {
+      label:'Visibility',
+      val:  kf.vizScore>=0.72?'CLEAR':kf.vizScore>=0.48?'FAIR':'POOR',
+      ok:   kf.vizScore >= 0.50,
+      note: kf.vizScore>=0.72?'ideal':kf.vizScore>=0.48?'workable':'too murky',
+    },
+    {
+      label:'Bait activity',
+      val:  d.swellHeight.toFixed(1)+'m swell',
+      ok:   d.swellHeight>=0.3 && d.swellHeight<=1.2,
+      note: d.swellHeight<0.3?'may be scattered':d.swellHeight<=1.2?'bait moving':'too rough',
+    },
+    {
+      label:'Time of day',
+      val:  fmtTime(now),
+      ok:   (kf.hour>=6&&kf.hour<=9)||(kf.hour>=16&&kf.hour<=19),
+      note: (kf.hour>=6&&kf.hour<=9)||(kf.hour>=16&&kf.hour<=19)?'feeding window':kf.hour<6||kf.hour>19?'outside daylight':'mid-day — slow',
+    },
+  ];
+
+  const monthDots = mShort.map((m,i)=>{
+    const p   = KF_SEASON[i];
+    const col = p>=0.65?'var(--go)':p>=0.28?'var(--caution)':'var(--nogo)';
+    const cur = i===kf.month;
+    return `<div class="kf-month${cur?' kf-month-cur':''}" style="background:${col};opacity:${p<0.12?0.35:1}" title="${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][i]}: ${Math.round(p*100)}%">${m}</div>`;
+  }).join('');
+
+  panel.innerHTML =
+    `<div class="kf-left">`+
+      `<div class="kf-score" style="color:${lbl.color}">${kf.score}</div>`+
+      `<div class="kf-word" style="color:${lbl.color}">${lbl.word}</div>`+
+      `<div class="kf-bar"><i style="width:${kf.score}%;background:${lbl.color}"></i></div>`+
+      `<div class="kf-sub">${lbl.sub}</div>`+
+    `</div>`+
+    `<div class="kf-right">`+
+      `<div class="kf-checks">`+
+        checks.map(c=>
+          `<div class="kf-check">`+
+          `<span class="kf-tick" style="color:${c.ok?'var(--go)':'var(--nogo)'}">${c.ok?'▸':'▪'}</span>`+
+          `<span class="kf-chk-label">${c.label}</span>`+
+          `<span class="kf-chk-val">${c.val}</span>`+
+          `<span class="kf-chk-note" style="color:${c.ok?'var(--muted-2)':'var(--nogo)'}">${c.note}</span>`+
+          `</div>`
+        ).join('')+
+      `</div>`+
+      `<div class="kf-season-hd">SEASONAL PRESENCE — BONDI</div>`+
+      `<div class="kf-months">${monthDots}</div>`+
+      `<div class="kf-field-note">Hotspot: Ben Buckler headland (N end), incoming tide. Look for bait schools being pushed up by SSE swell — kings follow underneath.</div>`+
+    `</div>`;
+}
+
+/* ============================================================
+   HISTORY — localStorage (live mode) / static demo backstory
+   Bars = swell height column + rain dot per day.
+   Swell colour: green<0.8m / yellow / red>1.5m.
+   Rain dot colour: green<20% / yellow<50% / red 50%+.
+============================================================ */
+function buildDemoHistory(){
+  // Plausible Bondi backstory: rough 3 days ago, now clearing.
+  return [
+    {label:'3 days ago', avgSwellHeight:2.1, rainProb:70},
+    {label:'2 days ago', avgSwellHeight:1.4, rainProb:40},
+    {label:'Yesterday',  avgSwellHeight:0.9, rainProb:12},
+  ];
+}
+function saveToHistory(d){
+  try{
+    const key='kf-hist-v1';
+    const today=new Date().toLocaleDateString('en-AU');
+    let hist=JSON.parse(localStorage.getItem(key)||'[]');
+    hist=hist.filter(h=>h.date!==today);
+    hist.push({date:today, avgSwellHeight:d.swellHeight, rainProb:d.rainProb});
+    localStorage.setItem(key, JSON.stringify(hist.slice(-4)));
+  }catch(e){}
+}
+function loadHistory(){
+  try{
+    const key='kf-hist-v1';
+    const today=new Date().toLocaleDateString('en-AU');
+    const raw=JSON.parse(localStorage.getItem(key)||'[]').filter(h=>h.date!==today).slice(-3);
+    return raw.map((h,i,arr)=>{
+      const ago=arr.length-i;
+      return{...h, label:ago===1?'Yesterday':ago+' days ago'};
+    });
+  }catch(e){ return []; }
+}
+
+/* @keyframes fadeUp defined in css/style.css */
+
+/* ============================================================
+   DEMO DATA  — typical good Bondi morning for spearfishing:
+   SSE groundswell, glassy early, sea breeze kills it by arvo.
+============================================================ */
+function buildDemoData(){
+  const base=new Date(); base.setHours(0,0,0,0);
+  const at=h=>base.getTime()+h*3600000;
+  const now=Date.now();
+
+  const hourly=[];
+  for(let h=4;h<=19;h++){
+    // light W/NW pre-dawn, classic NE sea breeze from 11am
+    const windKn  = h<10 ? 2+(h-4)*0.4 : 4+(h-10)*2.6;
+    const windDeg = h<11 ? 258 : 258-(h-11)*22;
+    const swellHeight = 0.52 + (h>14?0.18:0) + Math.sin(h/6)*0.04;
+    hourly.push({
+      time: at(h),
+      windKn: +windKn.toFixed(1), windDeg: Math.round(windDeg),
+      swellHeight: +swellHeight.toFixed(2),
+      swellPeriod: 13,
+      swellDeg: 170,
+      rainProb: h>16?14:3,
+    });
+  }
+  const tides=[
+    {time:at(4.8),  type:'low',  height:0.3},
+    {time:at(11.2), type:'high', height:1.5},
+    {time:at(17.5), type:'low',  height:0.4},
+    {time:at(23.0), type:'high', height:1.6},
+  ];
+  let cur=hourly.reduce((a,b)=>Math.abs(b.time-now)<Math.abs(a.time-now)?b:a, hourly[0]);
+  if(now<at(4)||now>at(19)) cur=hourly.find(h=>new Date(h.time).getHours()===9);
+
+  return {
+    now, locationName:'Bondi Beach (demo)',
+    swellHeight:cur.swellHeight, swellPeriod:cur.swellPeriod, swellDeg:170,
+    windKn:cur.windKn, windDeg:cur.windDeg,
+    rainProb:cur.rainProb, waterTemp:19.5,
+    tides, hourly,
+    sunrise:at(6.85), sunset:at(17.0),
+  };
+}
+
+/* ============================================================
+   LIVE DATA  — fetch via proxy, parse WillyWeather v2 response
+   Proxy is expected to expose:  {proxy}/locations/{id}/weather.json?forecasts=...&days=1
+   and inject the secret API key server-side.
+============================================================ */
+async function fetchLive(){
+  const forecasts='wind,swell,tides,rainfallprobability,temperature,sunrisesunset';
+  const base = state.proxy.replace(/\/$/,'');
+  const url = `${base}/locations/${state.locationId}/weather.json?forecasts=${forecasts}&days=1`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('Proxy/API returned '+res.status);
+  const j = await res.json();
+  return parseWilly(j);
+}
+
+// Defensive parser — WillyWeather nests forecasts[type].days[].entries[]
+function parseWilly(j){
+  const now=Date.now();
+  const F = j.forecasts || {};
+  const entriesOf = (type)=>{
+    const days=(F[type]&&F[type].days)||[];
+    return days.flatMap(d=>(d.entries||[]).map(e=>({...e, _t: Date.parse(e.dateTime||e.dateTimeISO||e.date)})));
+  };
+  const nearest=(arr)=>arr.reduce((a,b)=>Math.abs(b._t-now)<Math.abs(a._t-now)?b:a, arr[0]||{});
+
+  const wind=entriesOf('wind'), swell=entriesOf('swell'), rain=entriesOf('rainfallprobability'), temp=entriesOf('temperature');
+  const w=nearest(wind), s=nearest(swell), r=nearest(rain), t=nearest(temp);
+
+  const tideEntries=entriesOf('tides').map(e=>({time:e._t, type:(e.type||'').toLowerCase(), height:+(e.height||0)}));
+
+  // sunrise/sunset
+  let sunrise=null,sunset=null;
+  const sd=(F.sunrisesunset&&F.sunrisesunset.days&&F.sunrisesunset.days[0]&&F.sunrisesunset.days[0].entries&&F.sunrisesunset.days[0].entries[0])||null;
+  if(sd){ sunrise=Date.parse(sd.riseDateTime||sd.firstLightDateTime); sunset=Date.parse(sd.setDateTime||sd.lastLightDateTime); }
+
+  // hourly merge keyed on swell timestamps (swell+wind are the movers)
+  const hourly = swell.map(se=>{
+    const wm=wind.reduce((a,b)=>Math.abs(b._t-se._t)<Math.abs(a._t-se._t)?b:a, wind[0]||{});
+    const rm=rain.reduce((a,b)=>Math.abs(b._t-se._t)<Math.abs(a._t-se._t)?b:a, rain[0]||{});
+    return {
+      time: se._t,
+      swellHeight:+(se.height||0), swellPeriod:+(se.period||10),
+      windKn:(+(wm.speed||0))*KN_PER_KMH, windDeg:+(wm.direction||0),
+      rainProb:+(rm.probability||0),
+    };
+  });
+
+  return {
+    now,
+    locationName:(j.location&&j.location.name)||'Live location',
+    swellHeight:+(s.height||0), swellPeriod:+(s.period||10), swellDeg:+(s.direction||0),
+    windKn:(+(w.speed||0))*KN_PER_KMH, windDeg:+(w.direction||0),
+    rainProb:+(r.probability||0), waterTemp:+(t.temperature||t.value||19),
+    tides:tideEntries, hourly,
+    sunrise, sunset,
+  };
+}
+
+/* ============================================================
+   ORCHESTRATION
+============================================================ */
+async function load(){
+  const banner=document.getElementById('live-banner');
+  banner.classList.remove('show');
+  document.getElementById('source-tag').textContent = state.mode==='live'?'LIVE':'DEMO';
+
+  if(state.mode==='demo'){
+    const d=buildDemoData();
+    document.getElementById('loc-line').textContent = d.locationName+' · freediving + spearo conditions';
+    render(d, buildDemoHistory());
+    return;
+  }
+  // live
+  try{
+    if(!state.proxy) throw new Error('No proxy URL set');
+    const d=await fetchLive();
+    document.getElementById('loc-line').textContent = d.locationName+' · live · freediving + spearo conditions';
+    saveToHistory(d);
+    render(d, loadHistory());
+  }catch(err){
+    banner.textContent='⚠ Live fetch failed: '+err.message+'  — showing demo data. Check your proxy URL & that swell/tide forecasts are enabled on your key.';
+    banner.classList.add('show');
+    state.mode='demo';
+    document.getElementById('source-tag').textContent='DEMO';
+    render(buildDemoData(), buildDemoHistory());
+  }
+}
+
+/* ===== settings modal ===== */
+function openModal(){ document.getElementById('scrim').classList.add('open'); }
+function closeModal(){ document.getElementById('scrim').classList.remove('open'); }
+function setMode(m){
+  state.mode=m;
+  document.getElementById('mode-demo').classList.toggle('active',m==='demo');
+  document.getElementById('mode-live').classList.toggle('active',m==='live');
+}
+document.getElementById('in-loc').addEventListener('change',e=>{
+  document.getElementById('in-loc-custom').style.display = e.target.value==='custom'?'block':'none';
+});
+function applySettings(){
+  state.proxy=document.getElementById('in-proxy').value.trim();
+  const sel=document.getElementById('in-loc').value;
+  state.locationId = sel==='custom' ? (document.getElementById('in-loc-custom').value.trim()||'4950') : sel;
+  const st=document.getElementById('status-line');
+  if(state.mode==='live' && !state.proxy){
+    st.style.color='var(--nogo)'; st.textContent='⚠ Live mode needs a proxy URL.'; return;
+  }
+  st.style.color='var(--go)'; st.textContent='✓ Applied.';
+  closeModal(); load();
+}
+document.getElementById('open-settings').addEventListener('click',openModal);
+document.getElementById('scrim').addEventListener('click',e=>{ if(e.target.id==='scrim') closeModal(); });
+
+/* boot */
+load();
+</script>
+</body>
+</html>
