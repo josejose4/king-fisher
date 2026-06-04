@@ -57,7 +57,7 @@
   </section>
 
   <!-- FACTOR BREAKDOWN -->
-  <div class="section-label">Operational briefing</div>
+  <div class="section-label">Summary</div>
   <div class="grid" id="factor-grid"></div>
 
   <!-- KINGFISH INTEL -->
@@ -259,14 +259,83 @@ function render(d, history){
   flag.style.background='color-mix(in srgb,'+v.color+' 12%, transparent)';
   flag.style.border='1px solid color-mix(in srgb,'+v.color+' 30%, transparent)';
 
-  // limiting factor — most penalised among the high-weight factors
-  const limitKeys=['swellHeight','windSpeed','swellDir','rain','swellPeriod','tide'];
-  let worstK=null, worstImpact=Infinity;
-  for(const k of limitKeys){ if(subs[k]<worstImpact){ worstImpact=subs[k]; worstK=k; } }
-  const limitLabels={swellHeight:'SWELL SIZE',windSpeed:'WIND SPEED',swellDir:'SWELL DIRECTION',rain:'RAIN / RUNOFF',swellPeriod:'SWELL PERIOD',tide:'TIDE TIMING'};
-  const lim=document.getElementById('limiting');
-  lim.style.display = worstImpact>0.78 ? 'none' : 'block';
-  if(worstImpact<=0.78) lim.innerHTML='Limiting factor: <b>'+limitLabels[worstK]+'</b>';
+  // ---- Limiting factors + recommendations ----
+  const lim = document.getElementById('limiting');
+  const factorLabels = {
+    swellHeight:'Swell height', windSpeed:'Wind speed', swellDir:'Swell direction',
+    rain:'Rain / runoff', swellPeriod:'Swell period', tide:'Tide timing',
+    windDir:'Wind direction', waterTemp:'Water temp',
+  };
+
+  // Sort all scored factors by quality, worst first
+  const sortedFactors = Object.keys(WEIGHTS)
+    .filter(k => subs[k] !== undefined)
+    .map(k => ({k, v: subs[k]}))
+    .sort((a,b) => a.v - b.v);
+  const weakFactors = sortedFactors.filter(f => f.v < 0.82).slice(0, 3);
+
+  let limHtml = '';
+
+  // Factor bars
+  if(weakFactors.length){
+    limHtml += `<div class="rec-header">Limiting factors</div><div class="rec-factors">`;
+    limHtml += weakFactors.map(f =>
+      `<div class="rec-factor-row">`+
+      `<span class="rec-factor-name">${factorLabels[f.k]}</span>`+
+      `<div class="rec-bar"><i style="width:${Math.round(f.v*100)}%;background:${barColor(f.v)}"></i></div>`+
+      `<span class="rec-pct" style="color:${barColor(f.v)}">${Math.round(f.v*100)}%</span>`+
+      `</div>`
+    ).join('');
+    limHtml += `</div>`;
+  }
+
+  // Actionable recommendations
+  const recs = [];
+  const hour = new Date(now).getHours();
+
+  if(subs.windSpeed < 0.72){
+    if(hour >= 10 && d.windKn > 8)
+      recs.push(`Sea breeze is building (${Math.round(d.windKn)} kn ${fmtDir(d.windDeg)}). Try again early morning — Bondi is typically glassy before 9am.`);
+    else
+      recs.push(`Wind at ${Math.round(d.windKn)} kn. Conditions improve when it drops below 5 kn.`);
+  }
+  if(subs.swellHeight < 0.65){
+    if(d.swellHeight > 1.5)
+      recs.push(`Swell at ${d.swellHeight.toFixed(1)} m is too big. Wait for it to settle below 0.4 m — check the forecast for the next calm window.`);
+    else
+      recs.push(`Swell at ${d.swellHeight.toFixed(1)} m is marginal. Under 0.4 m is ideal for Bondi.`);
+  }
+  if(subs.swellDir < 0.55)
+    recs.push(`${fmtDir(d.swellDeg)} swell is unfavourable for Bondi. Wait for a south to SSE window (155–185°) — cleaner water and active bait.`);
+  if(subs.rain < 0.70)
+    recs.push(`${Math.round(d.rainProb)}% rain probability means runoff risk. Visibility typically recovers 2–3 days after rain clears.`);
+
+  // Next tide
+  const upcomingTides = (d.tides||[]).filter(t=>t.time>now).sort((a,b)=>a.time-b.time);
+  if(upcomingTides.length){
+    const nt = upcomingTides[0];
+    recs.push(`${nt.type==='high'?'High':'Low'} tide at ${fmtTime(nt.time)} (${nt.height.toFixed(1)} m) — slack water around this time offers the cleanest conditions and least current.`);
+    if(nt.type==='high' && upcomingTides[1]){
+      recs.push(`Outgoing run after ${fmtTime(nt.time)} pushes bait along the reef — prime kingfish activity window.`);
+    }
+  }
+
+  // Best upcoming hourly window
+  const futureHours = (d.hourly||[])
+    .filter(h => h.time > now && h.time <= (d.sunset||Infinity))
+    .map(h => ({...h, _sc: hourlyScore({...h, tides:d.tides}, h.time)}))
+    .sort((a,b) => b._sc - a._sc);
+  if(futureHours.length && futureHours[0]._sc > score + 6)
+    recs.push(`Best upcoming window today: ~${fmtTime(futureHours[0].time)} — projected score ${futureHours[0]._sc}.`);
+
+  if(recs.length){
+    limHtml += `<div class="rec-header">Recommendations</div><div class="rec-list">`;
+    limHtml += recs.map(r=>`<div class="rec-item"><span class="rec-arrow">▸</span>${r}</div>`).join('');
+    limHtml += `</div>`;
+  }
+
+  lim.style.display = limHtml ? 'block' : 'none';
+  lim.innerHTML = limHtml;
 
   // factor cards — 6 key factors, compact (no explanatory text)
   const wDir = scoreWindDir(d.windDeg);
@@ -467,7 +536,18 @@ function renderKingfishIntel(d, now){
       `</div>`+
       `<div class="kf-season-hd">SEASONAL PRESENCE — BONDI</div>`+
       `<div class="kf-months">${monthDots}</div>`+
-      `<div class="kf-field-note">Hotspot: Ben Buckler headland (N end), incoming tide. Look for bait schools being pushed up by SSE swell — kings follow underneath.</div>`+
+      `<div class="kf-field-note">Hotspot: Ben Buckler headland (N end) on incoming tide. SSE swell pushes bait onto the reef — kings follow from below.</div>`+
+      `<div class="kf-tips-hd">Field tips — yellowtail kingfish</div>`+
+      `<div class="kf-tips">`+
+        [
+          `Look for bait being pushed to the surface — diving birds or skipping fish = kings below. Don't dive on a dead flat ocean with no life.`,
+          `Kings hold on the deep edge of structure, typically 10–18 m. Work the whole water column, not just the reef top.`,
+          `Stay still and let them come to you. Kingfish are curious but bolt at sudden kicks or surface splashing. Float motionless and watch them circle.`,
+          `Current lines between clean and murky water concentrate bait schools. Patrol these colour-change edges — kings stack here.`,
+          `Best shot placement is behind the pec fin along the lateral line. A head or spine shot keeps the fish on the shaft and avoids a long chase.`,
+          `Incoming tide on a high pushes clean, cooler ocean water over the reef — this is when kings move in to feed.`,
+        ].map(t=>`<div class="kf-tip"><span class="kf-tip-arrow">▸</span>${t}</div>`).join('')+
+      `</div>`+
     `</div>`;
 }
 

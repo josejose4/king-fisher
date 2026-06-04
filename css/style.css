@@ -83,9 +83,6 @@ body::before {
   display: block;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
-  max-height: 260px;
-  object-fit: cover;
-  object-position: center 40%;
 }
 .gif-banner-label {
   position: absolute;
@@ -245,14 +242,42 @@ button.ghost:hover { border-color: var(--cyan); color: var(--cyan); }
   border-style: solid;
   text-transform: uppercase;
 }
-.limiting {
-  margin-top: 12px;
-  font-size: 12px;
+.limiting { margin-top: 16px; }
+
+.rec-header {
+  font-size: 10px;
+  letter-spacing: 2.5px;
   color: var(--muted);
-  letter-spacing: 1px;
   text-transform: uppercase;
+  margin-bottom: 8px;
+  margin-top: 14px;
 }
-.limiting b { color: var(--cyan); }
+.rec-header:first-child { margin-top: 0; }
+
+.rec-factors { display: flex; flex-direction: column; gap: 7px; margin-bottom: 2px; }
+.rec-factor-row { display: flex; align-items: center; gap: 8px; }
+.rec-factor-name {
+  width: 116px;
+  flex: none;
+  font-size: 11px;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.rec-bar { flex: 1; height: 4px; background: rgba(255,255,255,.06); overflow: hidden; }
+.rec-bar i { display: block; height: 100%; transition: width .8s cubic-bezier(.2,.8,.2,1); }
+.rec-pct { font-size: 11px; min-width: 30px; text-align: right; }
+
+.rec-list { display: flex; flex-direction: column; gap: 9px; }
+.rec-item {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 12.5px;
+  color: var(--ink);
+  line-height: 1.6;
+}
+.rec-arrow { color: var(--cyan); flex: none; margin-top: 1px; }
 
 /* ---- SECTION LABEL ---- */
 .section-label {
@@ -286,24 +311,24 @@ button.ghost:hover { border-color: var(--cyan); color: var(--cyan); }
 .card:hover { border-color: rgba(34, 201, 216, .42); }
 
 .card .lbl {
-  font-size: 11px;
-  letter-spacing: 2.5px;
+  font-size: 12px;
+  letter-spacing: 2px;
   color: var(--muted);
   text-transform: uppercase;
 }
 .card .val {
   font-family: 'Share Tech Mono', monospace;
-  font-size: 30px;
+  font-size: 32px;
   margin-top: 10px;
   line-height: 1.1;
   letter-spacing: 1px;
 }
 .card .val small {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
   margin-left: 3px;
 }
-.card .meta { font-size: 12px; color: var(--muted-2); margin-top: 8px; letter-spacing: .5px; }
+.card .meta { font-size: 13px; color: var(--muted-2); margin-top: 8px; letter-spacing: .4px; }
 .bar { height: 3px; background: rgba(255, 255, 255, .06); margin-top: 14px; overflow: hidden; }
 .bar i { display: block; height: 100%; transition: width .8s cubic-bezier(.2, .8, .2, 1); }
 
@@ -521,17 +546,17 @@ footer a { color: var(--cyan); text-decoration: none; }
   overflow: hidden;
 }
 .kf-bar i { display: block; height: 100%; transition: width .9s cubic-bezier(.2, .8, .2, 1); }
-.kf-sub { font-size: 12px; color: var(--muted); line-height: 1.6; }
+.kf-sub { font-size: 13px; color: var(--muted); line-height: 1.6; }
 
-.kf-checks { display: flex; flex-direction: column; gap: 9px; margin-bottom: 16px; }
-.kf-check { display: flex; align-items: center; gap: 8px; font-size: 12px; }
-.kf-tick { font-size: 12px; flex: none; width: 12px; }
-.kf-chk-label { flex: 1; color: var(--muted-2); letter-spacing: .5px; text-transform: uppercase; font-size: 11px; }
-.kf-chk-val { min-width: 72px; color: var(--ink); }
-.kf-chk-note { color: var(--muted-2); font-size: 11px; letter-spacing: .3px; text-align: right; }
+.kf-checks { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.kf-check { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.kf-tick { font-size: 13px; flex: none; width: 14px; }
+.kf-chk-label { flex: 1; color: var(--muted-2); letter-spacing: .5px; text-transform: uppercase; font-size: 12px; }
+.kf-chk-val { min-width: 72px; color: var(--ink); font-size: 13px; }
+.kf-chk-note { color: var(--muted-2); font-size: 12px; letter-spacing: .3px; text-align: right; }
 
 .kf-season-hd {
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 2px;
   color: var(--muted);
   text-transform: uppercase;
@@ -554,12 +579,31 @@ footer a { color: var(--cyan); text-decoration: none; }
 }
 .kf-field-note {
   margin-top: 12px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted-2);
   line-height: 1.65;
   border-left: 2px solid var(--panel-edge);
   padding-left: 10px;
 }
+
+/* ---- KINGFISH TIPS ---- */
+.kf-tips-hd {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin: 18px 0 10px;
+}
+.kf-tips { display: flex; flex-direction: column; gap: 9px; }
+.kf-tip {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  font-size: 12.5px;
+  color: var(--ink);
+  line-height: 1.6;
+}
+.kf-tip-arrow { color: var(--caution); flex: none; margin-top: 1px; }
 
 /* ---- RAIN HISTORY ---- */
 .rain-hist {
