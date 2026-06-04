@@ -29,6 +29,13 @@
 
   <div class="live-banner" id="live-banner"></div>
 
+  <!-- LOCATION SELECTOR -->
+  <div class="loc-bar">
+    <span class="loc-bar-label">Location</span>
+    <select class="loc-select" id="loc-select" aria-label="Select dive location"></select>
+    <span class="loc-bar-note" id="loc-bar-note"></span>
+  </div>
+
   <!-- HERO GIF -->
   <div class="gif-banner">
     <img src="images/chase_wide.gif" class="chase-gif" alt="Spearfisher chasing kingfish">
@@ -76,11 +83,15 @@
 
   <footer>
     <div id="sun-line"></div>
-    Conditions scored for shore/boat freediving at Bondi Beach and surrounding Sydney east coast breaks. This is a planning aid, not a
+    Conditions scored for shore/boat freediving on the east coast of Australia. This is a planning aid, not a
     safety guarantee — always check the <a href="http://www.bom.gov.au/nsw/warnings/" target="_blank" rel="noopener">BoM marine warnings</a>,
-    dive with a buddy, and make the final call at the water's edge.<br>
-    Live data via the <a href="https://www.willyweather.com.au/info/api.html" target="_blank" rel="noopener">WillyWeather API</a>
-    (proxied — see settings). Location IDs: <a href="https://oztides.mltindustries.com.au/" target="_blank" rel="noopener">find yours here</a>.
+    dive with a buddy, and make the final call at the water's edge.
+    <div class="ww-credit">
+      <span class="ww-badge">Powered by</span>
+      <a href="https://www.willyweather.com.au/info/api.html" target="_blank" rel="noopener" class="ww-link">WillyWeather</a>
+      <span class="ww-sep">·</span> Australian weather, wind &amp; tide forecasts.
+      Location IDs listed are approximate — <a href="https://www.willyweather.com.au" target="_blank" rel="noopener" class="ww-link">verify yours at willyweather.com.au</a>.
+    </div>
   </footer>
 </div>
 
@@ -126,9 +137,35 @@ const KN_PER_KMH = 0.539957;       // km/h -> knots
 const state = {
   mode: 'demo',
   proxy: '',
-  locationId: '4950',
-  locationName: 'Sydney',
+  locationId: '16636',
+  locationName: 'Bondi Beach',
 };
+
+/* East-coast locations — IDs are WillyWeather location codes.
+   Verify/update IDs at willyweather.com.au if using live data. */
+const EAST_COAST_LOCATIONS = [
+  // ── Sydney metro ──────────────────────────────────────────
+  { id:'16636', name:'Bondi Beach',      sub:'Sydney, NSW' },
+  { id:'16757', name:'Coogee',           sub:'Sydney, NSW' },
+  { id:'16760', name:'Maroubra',         sub:'Sydney, NSW' },
+  { id:'16723', name:'Manly',            sub:'Sydney, NSW' },
+  { id:'16680', name:'Cronulla',         sub:'Sydney, NSW' },
+  { id:'16710', name:'Long Reef',        sub:'Sydney, NSW' },
+  // ── NSW coast ─────────────────────────────────────────────
+  { id:'4968',  name:'Wollongong',       sub:'Illawarra, NSW' },
+  { id:'5038',  name:'Jervis Bay',       sub:'South Coast, NSW' },
+  { id:'5042',  name:'Batemans Bay',     sub:'South Coast, NSW' },
+  { id:'5048',  name:'Narooma',          sub:'South Coast, NSW' },
+  { id:'4998',  name:'Newcastle',        sub:'Hunter, NSW' },
+  { id:'5003',  name:'Port Stephens',    sub:'Hunter, NSW' },
+  { id:'4856',  name:'Port Macquarie',   sub:'Mid North Coast, NSW' },
+  { id:'4852',  name:'Coffs Harbour',    sub:'Mid North Coast, NSW' },
+  { id:'4819',  name:'Byron Bay',        sub:'Northern Rivers, NSW' },
+  // ── Queensland ────────────────────────────────────────────
+  { id:'4825',  name:'Gold Coast',       sub:'QLD' },
+  { id:'4838',  name:'Sunshine Coast',   sub:'QLD' },
+  { id:'4843',  name:'Noosa',            sub:'QLD' },
+];
 
 /* ============================================================
    SCORING ENGINE  (the actual "is it diveable" logic)
@@ -623,7 +660,7 @@ function buildDemoData(){
   if(now<at(4)||now>at(19)) cur=hourly.find(h=>new Date(h.time).getHours()===9);
 
   return {
-    now, locationName:'Bondi Beach (demo)',
+    now, locationName: state.locationName + ' (demo)',
     swellHeight:cur.swellHeight, swellPeriod:cur.swellPeriod, swellDeg:170,
     windKn:cur.windKn, windDeg:cur.windDeg,
     rainProb:cur.rainProb, waterTemp:19.5,
@@ -745,7 +782,33 @@ function applySettings(){
 document.getElementById('open-settings').addEventListener('click',openModal);
 document.getElementById('scrim').addEventListener('click',e=>{ if(e.target.id==='scrim') closeModal(); });
 
+/* location selector */
+function initLocationSelector(){
+  const sel = document.getElementById('loc-select');
+  const note = document.getElementById('loc-bar-note');
+  EAST_COAST_LOCATIONS.forEach((loc, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = loc.name + '  —  ' + loc.sub;
+    if(loc.id === state.locationId) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', e => {
+    const loc = EAST_COAST_LOCATIONS[+e.target.value];
+    state.locationId   = loc.id;
+    state.locationName = loc.name;
+    note.textContent   = state.mode === 'live' ? 'ID: ' + loc.id : '';
+    load();
+  });
+  // show ID hint in live mode
+  if(state.mode === 'live'){
+    const cur = EAST_COAST_LOCATIONS.find(l => l.id === state.locationId);
+    if(cur) note.textContent = 'ID: ' + cur.id;
+  }
+}
+
 /* boot */
+initLocationSelector();
 load();
 </script>
 </body>
