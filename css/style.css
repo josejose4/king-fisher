@@ -185,7 +185,7 @@ header.top {
 }
 .pill b { color: var(--cyan); }
 
-button.ghost {
+.ghost {
   font-family: 'Share Tech Mono', monospace;
   font-size: 11px;
   color: var(--ink);
@@ -196,8 +196,11 @@ button.ghost {
   transition: border-color .15s, color .15s;
   letter-spacing: 1.5px;
   text-transform: uppercase;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
 }
-button.ghost:hover { border-color: var(--cyan); color: var(--cyan); }
+.ghost:hover { border-color: var(--cyan); color: var(--cyan); }
 
 /* ---- LIVE BANNER ---- */
 .live-banner {
