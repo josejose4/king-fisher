@@ -23,6 +23,7 @@
     </div>
     <div class="top-actions">
       <span class="pill" id="updated-pill">SOURCE <b id="source-tag">DEMO</b></span>
+      <a href="history.html" class="ghost">◈ History</a>
       <button class="ghost" id="open-settings">⚙ Settings</button>
     </div>
   </header>
@@ -84,15 +85,12 @@
 
   <footer>
     <div id="sun-line"></div>
-    Conditions scored for shore/boat freediving on the east coast of Australia. This is a planning aid, not a
-    safety guarantee — always check the <a href="http://www.bom.gov.au/nsw/warnings/" target="_blank" rel="noopener">BoM marine warnings</a>,
-    dive with a buddy, and make the final call at the water's edge.
-    <div class="by-jose">By Jose</div>
+This is a planning aid, not a safety guarantee — always check the <a href="http://www.bom.gov.au/nsw/warnings/" target="_blank" rel="noopener">BoM marine warnings</a>
+    <div class="by-jose">by josejose</div>
     <div class="ww-credit">
       <span class="ww-badge">Powered by</span>
       <a href="https://www.willyweather.com.au/info/api.html" target="_blank" rel="noopener" class="ww-link">WillyWeather</a>
-      <span class="ww-sep">·</span> Australian weather, wind &amp; tide forecasts.
-      Location IDs listed are approximate — <a href="https://www.willyweather.com.au" target="_blank" rel="noopener" class="ww-link">verify yours at willyweather.com.au</a>.
+      <span class="ww-sep">·</span> Location IDs listed are approximate — <a href="https://www.willyweather.com.au" target="_blank" rel="noopener" class="ww-link">verify yours at willyweather.com.au</a>.
     </div>
   </footer>
 </div>
@@ -731,8 +729,9 @@ function saveToHistory(d){
     const today=new Date().toLocaleDateString('en-AU');
     let hist=JSON.parse(localStorage.getItem(key)||'[]');
     hist=hist.filter(h=>h.date!==today);
-    hist.push({date:today, avgSwellHeight:d.swellHeight, rainProb:d.rainProb});
-    localStorage.setItem(key, JSON.stringify(hist.slice(-4)));
+    const {score:dayScore}=computeScore(d, d.now);
+    hist.push({date:today, avgSwellHeight:d.swellHeight, rainProb:d.rainProb, windKn:d.windKn, score:dayScore});
+    localStorage.setItem(key, JSON.stringify(hist.slice(-45)));
   }catch(e){}
 }
 function loadHistory(){
@@ -969,10 +968,14 @@ load();
 </html>
 
 
-// for the GIF: make this image change depending on the rating IRL
+/* for the GIF: make this image change depending on the rating IRL
 //for Limiting factos: make this information clearer
 // for the summar widgets: add incons
 // change the possible rating for kingfish encounter 
 // limit the field tips to just the tip of the day 
 // where it gives the 'dive score by hour' add a graph here. 
 // notification for when Kingfish likelihood will be high the next day...
+// add a historical timeline... on a separate webpage show the average dive-score per day based on weather observation data that has been recorded for a certain period
+// for the historical timeline, we need to look at the BoM and the Manly Hydraulics Labratory
+// include rainfall
+*/

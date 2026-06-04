@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>.::King-Fisher::. — History</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="images/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon-180.png">
+<style>
+/* ---- History page extras ---- */
+.demo-note {
+  font-size: 12px;
+  color: var(--muted-2);
+  padding: 10px 16px;
+  border: 1px solid var(--panel-edge);
+  background: var(--panel);
+  line-height: 1.65;
+  margin-bottom: 0;
+  display: none;
+}
+.demo-note.show { display: block; }
+
+/* Calendar heatmap */
+.hm-wrap {
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  padding: 20px;
+}
+.hm-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+}
+.hm-day-lbl {
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  text-align: center;
+  padding-bottom: 6px;
+}
+.hm-cell {
+  aspect-ratio: 1;
+  position: relative;
+}
+.hm-cell[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0a1828;
+  border: 1px solid var(--panel-edge);
+  color: var(--ink);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  padding: 5px 9px;
+  white-space: nowrap;
+  z-index: 20;
+  pointer-events: none;
+}
+.hm-legend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  font-size: 10px;
+  color: var(--muted-2);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.hm-legend-dot {
+  width: 12px; height: 12px;
+  flex: none;
+}
+
+/* Stats */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+.stat-card {
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  padding: 18px 16px;
+  text-align: center;
+}
+.stat-val {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 26px;
+  line-height: 1;
+  margin-bottom: 10px;
+}
+.stat-lbl {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+/* Daily log */
+.day-list { display: flex; flex-direction: column; gap: 6px; }
+.day-row {
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  padding: 12px 16px;
+  display: grid;
+  grid-template-columns: 120px 56px 70px 1fr;
+  gap: 12px;
+  align-items: center;
+  font-size: 12px;
+  transition: border-color .15s;
+}
+.day-row:hover { border-color: rgba(34,201,216,.35); }
+.day-date { color: var(--muted); letter-spacing: .4px; }
+.day-verdict {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  letter-spacing: .5px;
+}
+.day-score { color: var(--ink); }
+.day-score small { font-size: 10px; color: var(--muted); }
+.day-meta { color: var(--muted-2); letter-spacing: .3px; font-size: 11px; }
+@media(max-width:600px){
+  .day-row { grid-template-columns: 1fr 56px; }
+  .day-score, .day-meta { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <img src="images/logo_horizontal.png" alt="KING-FISHER" class="logo-img">
+      <p class="logo-sub" id="loc-subtitle">Historical Conditions</p>
+    </div>
+    <div class="top-actions">
+      <a href="index.html" class="ghost">← Dive Brief</a>
+    </div>
+  </header>
+
+  <div class="date-bar" id="date-bar"></div>
+  <div class="demo-note" id="demo-note"></div>
+
+  <div class="section-label">30-day calendar</div>
+  <div class="hm-wrap">
+    <div class="hm-grid" id="hm-grid"></div>
+    <div class="hm-legend">
+      <div class="hm-cell hm-legend-dot" style="background:var(--go);opacity:.9"></div> GO
+      <div class="hm-cell hm-legend-dot" style="background:var(--caution);opacity:.9"></div> MAYBE
+      <div class="hm-cell hm-legend-dot" style="background:var(--nogo);opacity:.9"></div> NO-GO
+      <div class="hm-cell hm-legend-dot" style="background:var(--muted-2);opacity:.5"></div> No data
+    </div>
+  </div>
+
+  <div class="section-label">Dive score trend</div>
+  <div class="timeline">
+    <div class="tl-head">
+      <div class="tl-head-label">Score — past 30 days</div>
+      <div class="tl-best" id="trend-best">—</div>
+    </div>
+    <div class="tl-bars" id="trend-chart"></div>
+  </div>
+
+  <div class="section-label">Stats</div>
+  <div class="stat-grid" id="stat-grid"></div>
+
+  <div class="section-label">Daily log</div>
+  <div class="day-list" id="day-list"></div>
+
+  <footer>
+    <div class="by-jose">by josejose</div>
+    <div class="ww-credit">
+      <span class="ww-badge">Powered by</span>
+      <a href="https://www.willyweather.com.au/info/api.html" target="_blank" rel="noopener" class="ww-link">WillyWeather</a>
+      <span class="ww-sep">·</span> Demo data is algorithmically generated. Open the app in live mode daily to collect real readings.
+    </div>
+  </footer>
+</div>
+
+<script>
+/* ---- Shared state ---- */
+const appState = {locationName:'Bondi Beach', mode:'demo'};
+try{
+  const s=JSON.parse(localStorage.getItem('kf-settings')||'{}');
+  if(s.locationName) appState.locationName=s.locationName;
+  if(s.mode) appState.mode=s.mode;
+}catch(e){}
+
+document.getElementById('loc-subtitle').textContent = appState.locationName+' · conditions history';
+
+/* ---- Date bar ---- */
+(()=>{
+  const d=new Date();
+  const days=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  const mos=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  document.getElementById('date-bar').textContent=
+    days[d.getDay()]+' · '+d.getDate()+' '+mos[d.getMonth()]+' '+d.getFullYear();
+})();
+
+/* ---- Helpers ---- */
+function seededRand(seed){
+  const x=Math.sin(seed*9301+49297)*233280;
+  return x-Math.floor(x);
+}
+function verdictFor(s){ return s>=75?'GO':s>=50?'MAYBE':'NO-GO'; }
+function verdictColor(s){ return s>=75?'var(--go)':s>=50?'var(--caution)':'var(--nogo)'; }
+function fmtDayLabel(d){
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const mos=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return days[d.getDay()]+' '+d.getDate()+' '+mos[d.getMonth()];
+}
+
+/* ---- Build 30-day history ---- */
+function buildHistory(){
+  const stored=JSON.parse(localStorage.getItem('kf-hist-v1')||'[]');
+  const today=new Date(); today.setHours(0,0,0,0);
+  const days=[];
+
+  for(let i=29;i>=0;i--){
+    const date=new Date(today); date.setDate(today.getDate()-i);
+    const dateStr=date.toLocaleDateString('en-AU');
+    const real=stored.find(s=>s.date===dateStr);
+
+    if(real && real.score != null){
+      days.push({
+        date, dateStr, label:fmtDayLabel(date),
+        swell:real.avgSwellHeight||0,
+        wind:real.windKn||null,
+        rain:real.rainProb||0,
+        score:real.score,
+        source:'live',
+      });
+    } else {
+      // Seeded demo — same result every time for the same date
+      const seed=date.getTime()/86400000;
+      const swell=0.45+seededRand(seed*1.13)*1.10;
+      const wind=4+seededRand(seed*2.31)*18;
+      const rain=Math.max(0,seededRand(seed*3.77)*65-12);
+      const swellS=swell<=0.4?1:Math.max(0,1-(swell-0.4)/1.4);
+      const windS=wind<=5?1:Math.max(0,1-(wind-5)/13);
+      const rainS=Math.max(0,1-(rain/100)*1.3);
+      const score=Math.min(100,Math.max(0,Math.round((swellS*0.40+windS*0.32+rainS*0.22+seededRand(seed*5)*0.06)*100)));
+      days.push({
+        date, dateStr, label:fmtDayLabel(date),
+        swell:+swell.toFixed(2), wind:+wind.toFixed(1), rain:Math.round(rain),
+        score, source:'demo',
+      });
+    }
+  }
+  return days;
+}
+
+/* ---- Calendar heatmap ---- */
+function renderHeatmap(days){
+  const grid=document.getElementById('hm-grid');
+  const dowLabels=['MON','TUE','WED','THU','FRI','SAT','SUN'];
+  let html=dowLabels.map(d=>`<div class="hm-day-lbl">${d}</div>`).join('');
+
+  // Pad to align first day with correct column (Mon=0)
+  const firstDow=(days[0].date.getDay()+6)%7;
+  for(let i=0;i<firstDow;i++)
+    html+=`<div></div>`;
+
+  html+=days.map(day=>{
+    const col=day.score!=null?verdictColor(day.score):'var(--muted-2)';
+    const op=day.score!=null?(0.2+0.8*(day.score/100)).toFixed(2):'0.3';
+    return `<div class="hm-cell" style="background:${col};opacity:${op}"
+      title="${day.label}: ${verdictFor(day.score)} · ${day.score}/100"></div>`;
+  }).join('');
+
+  grid.innerHTML=html;
+}
+
+/* ---- SVG trend chart ---- */
+function renderTrendChart(days){
+  const container=document.getElementById('trend-chart');
+  const n=days.length;
+  const W=560,H=160;
+  const P={top:12,right:10,bottom:30,left:34};
+  const pw=W-P.left-P.right, ph=H-P.top-P.bottom;
+  const xOf=i=>P.left+(n>1?(i/(n-1))*pw:pw/2);
+  const yOf=s=>P.top+(1-Math.min(100,Math.max(0,s))/100)*ph;
+  const y0=yOf(0),y50=yOf(50),y75=yOf(75),y100=yOf(100);
+
+  const areaPts=[`${xOf(0).toFixed(1)},${y0.toFixed(1)}`,
+    ...days.map((d,i)=>`${xOf(i).toFixed(1)},${yOf(d.score).toFixed(1)}`),
+    `${xOf(n-1).toFixed(1)},${y0.toFixed(1)}`].join(' ');
+
+  const segs=days.slice(0,-1).map((d,i)=>{
+    const avg=(d.score+days[i+1].score)/2;
+    const col=avg>=75?'#22c9d8':avg>=50?'#ff832f':'#e03535';
+    return `<line x1="${xOf(i).toFixed(1)}" y1="${yOf(d.score).toFixed(1)}"
+                  x2="${xOf(i+1).toFixed(1)}" y2="${yOf(days[i+1].score).toFixed(1)}"
+                  stroke="${col}" stroke-width="2" stroke-linecap="round"/>`;
+  }).join('');
+
+  // X labels: show when day=1 (month change), or first/last, or every 7th
+  const mos=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const xLbls=days.map((d,i)=>{
+    const dom=d.date.getDate();
+    if(dom===1||i===0||i===n-1||(i%7===0)){
+      const lbl=dom===1?mos[d.date.getMonth()]:dom+'';
+      return `<text x="${xOf(i).toFixed(1)}" y="${(H-4).toFixed(1)}"
+        font-family="Share Tech Mono,monospace" font-size="10" fill="rgba(74,136,152,.85)"
+        text-anchor="middle">${lbl}</text>`;
+    }
+    return '';
+  }).join('');
+
+  const yLbls=[75,50,25].map(v=>`<text x="${(P.left-5).toFixed(1)}" y="${(yOf(v)+3.5).toFixed(1)}"
+    font-family="Share Tech Mono,monospace" font-size="9" fill="rgba(74,136,152,.8)"
+    text-anchor="end">${v}</text>`).join('');
+
+  const best=days.reduce((b,d)=>d.score>b.score?d:b,days[0]);
+  const bi=days.indexOf(best);
+  const bestLine=`<line x1="${xOf(bi).toFixed(1)}" y1="${P.top}"
+    x2="${xOf(bi).toFixed(1)}" y2="${y0.toFixed(1)}"
+    stroke="rgba(34,201,216,.35)" stroke-width="1" stroke-dasharray="4 4"/>`;
+  document.getElementById('trend-best').textContent=`▲ Best: ${best.label} (${best.score})`;
+
+  container.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">
+    <defs>
+      <linearGradient id="th-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#22c9d8" stop-opacity=".12"/>
+        <stop offset="100%" stop-color="#22c9d8" stop-opacity=".01"/>
+      </linearGradient>
+      <clipPath id="th-clip"><rect x="${P.left}" y="${P.top}" width="${pw}" height="${ph}"/></clipPath>
+    </defs>
+    <rect x="${P.left}" y="${y100.toFixed(1)}" width="${pw}" height="${(y75-y100).toFixed(1)}" fill="rgba(34,201,216,.05)"/>
+    <rect x="${P.left}" y="${y75.toFixed(1)}"  width="${pw}" height="${(y50-y75).toFixed(1)}"  fill="rgba(255,131,47,.04)"/>
+    <rect x="${P.left}" y="${y50.toFixed(1)}"  width="${pw}" height="${(y0-y50).toFixed(1)}"   fill="rgba(224,53,53,.04)"/>
+    <line x1="${P.left}" y1="${y75.toFixed(1)}" x2="${(P.left+pw).toFixed(1)}" y2="${y75.toFixed(1)}"
+          stroke="rgba(255,255,255,.06)" stroke-width="1" stroke-dasharray="3 6"/>
+    <line x1="${P.left}" y1="${y50.toFixed(1)}" x2="${(P.left+pw).toFixed(1)}" y2="${y50.toFixed(1)}"
+          stroke="rgba(255,255,255,.06)" stroke-width="1" stroke-dasharray="3 6"/>
+    ${yLbls}
+    <polygon points="${areaPts}" fill="url(#th-grad)" clip-path="url(#th-clip)"/>
+    ${bestLine}
+    <g clip-path="url(#th-clip)">${segs}</g>
+    <line x1="${P.left}" y1="${P.top}" x2="${P.left}" y2="${y0.toFixed(1)}"
+          stroke="rgba(34,201,216,.15)" stroke-width="1"/>
+    <line x1="${P.left}" y1="${y0.toFixed(1)}" x2="${(P.left+pw).toFixed(1)}" y2="${y0.toFixed(1)}"
+          stroke="rgba(34,201,216,.15)" stroke-width="1"/>
+    ${xLbls}
+  </svg>`;
+}
+
+/* ---- Stats ---- */
+function renderStats(days){
+  const go=days.filter(d=>d.score>=75).length;
+  const maybe=days.filter(d=>d.score>=50&&d.score<75).length;
+  const nogo=days.filter(d=>d.score<50).length;
+  const avg=Math.round(days.reduce((s,d)=>s+d.score,0)/days.length);
+  const best=days.reduce((b,d)=>d.score>b.score?d:b,days[0]);
+  let streak=0;
+  for(let i=days.length-1;i>=0;i--){
+    if(days[i].score>=75) streak++;
+    else break;
+  }
+
+  const stats=[
+    {val:avg,           color:verdictColor(avg),    label:'Avg score · 30 days'},
+    {val:go,            color:'var(--go)',           label:'GO days'},
+    {val:maybe,         color:'var(--caution)',      label:'MAYBE days'},
+    {val:nogo,          color:'var(--nogo)',         label:'NO-GO days'},
+    {val:best.score,    color:verdictColor(best.score), label:'Best day score'},
+    {val:streak+'d',    color:'var(--cyan)',         label:'Current GO streak'},
+  ];
+
+  document.getElementById('stat-grid').innerHTML=stats.map(s=>
+    `<div class="stat-card">
+       <div class="stat-val" style="color:${s.color}">${s.val}</div>
+       <div class="stat-lbl">${s.label}</div>
+     </div>`
+  ).join('');
+}
+
+/* ---- Daily log ---- */
+function renderDayList(days){
+  document.getElementById('day-list').innerHTML=[...days].reverse().map(day=>{
+    const col=verdictColor(day.score);
+    const meta=[
+      day.swell!=null ? day.swell.toFixed(1)+'m swell' : null,
+      day.wind!=null  ? Math.round(day.wind)+'kn'      : null,
+      day.rain!=null  ? day.rain+'% rain'              : null,
+    ].filter(Boolean).join(' · ');
+    return `<div class="day-row">
+      <span class="day-date">${day.label}</span>
+      <span class="day-verdict" style="color:${col}">${verdictFor(day.score)}</span>
+      <span class="day-score">${day.score}<small> /100</small></span>
+      <span class="day-meta">${meta}</span>
+    </div>`;
+  }).join('');
+}
+
+/* ---- Demo note ---- */
+function renderDemoNote(days){
+  const liveCount=days.filter(d=>d.source==='live').length;
+  const note=document.getElementById('demo-note');
+  if(appState.mode==='demo'||liveCount===0){
+    note.textContent='All 30 days shown are algorithmically generated (demo mode). Switch to Live in Settings and open the app each day to build a real historical record.';
+  } else if(liveCount<30){
+    note.textContent=`${liveCount} day${liveCount!==1?'s':''} of real data collected — remaining days are filled with demo data. Keep opening the app daily to fill the history.`;
+  } else {
+    note.style.display='none'; return;
+  }
+  note.classList.add('show');
+}
+
+/* ---- Boot ---- */
+const hist=buildHistory();
+renderDemoNote(hist);
+renderHeatmap(hist);
+renderTrendChart(hist);
+renderStats(hist);
+renderDayList(hist);
+</script>
+</body>
+</html>
