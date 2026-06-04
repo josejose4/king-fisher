@@ -6,23 +6,20 @@
 <title>GO / NO-GO — Bondi Beach Spearfishing Conditions</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="images/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon-180.png">
 </head>
 <body>
 <div class="wrap">
   <header class="top">
     <div class="brand">
-      <svg class="mark" viewBox="0 0 48 48" fill="none">
-        <path d="M4 30c5 0 5-4 10-4s5 4 10 4 5-4 10-4 5 4 10 4" stroke="#987e20" stroke-width="2.4" stroke-linecap="round"/>
-        <path d="M4 38c5 0 5-4 10-4s5 4 10 4 5-4 10-4 5 4 10 4" stroke="#6e6438" stroke-width="2.4" stroke-linecap="round" opacity=".8"/>
-        <path d="M24 6l3.2 9.4L24 24l-3.2-8.6L24 6z" fill="#987e20"/>
-        <circle cx="24" cy="24" r="2.4" fill="#bfb170"/>
-      </svg>
-      <div class="title">
-        <h1>GO / NO-GO</h1>
-        <p id="loc-line">Bondi Beach · freediving + spearo conditions</p>
-      </div>
+      <img src="images/logo_horizontal.png" alt="KING-FISHER" class="logo-img">
+      <p id="loc-line" class="logo-sub">Bondi Beach · freediving + spearo conditions</p>
     </div>
     <div class="top-actions">
       <span class="pill" id="updated-pill">SOURCE <b id="source-tag">DEMO</b></span>
@@ -32,12 +29,18 @@
 
   <div class="live-banner" id="live-banner"></div>
 
+  <!-- HERO GIF -->
+  <div class="gif-banner">
+    <img src="images/chase_wide.gif" class="chase-gif" alt="Spearfisher chasing kingfish">
+    <div class="gif-banner-label">Bondi Beach · Subsurface Spearfishing</div>
+  </div>
+
   <!-- HERO VERDICT -->
   <section class="hero">
     <div class="gauge">
       <svg width="240" height="240" viewBox="0 0 240 240">
-        <circle cx="120" cy="120" r="104" fill="none" stroke="rgba(148,128,44,.12)" stroke-width="16"/>
-        <circle id="gauge-arc" cx="120" cy="120" r="104" fill="none" stroke="#987e20" stroke-width="16"
+        <circle cx="120" cy="120" r="104" fill="none" stroke="rgba(34,201,216,.10)" stroke-width="16"/>
+        <circle id="gauge-arc" cx="120" cy="120" r="104" fill="none" stroke="#22c9d8" stroke-width="16"
           stroke-linecap="round" stroke-dasharray="653" stroke-dashoffset="653"
           style="transition:stroke-dashoffset 1.1s cubic-bezier(.2,.8,.2,1), stroke .6s"/>
       </svg>
