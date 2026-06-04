@@ -108,6 +108,16 @@ body::before {
   margin-left: auto;
 }
 
+/* ---- DATE BAR ---- */
+.date-bar {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  padding: 2px 2px 14px;
+}
+
 /* ---- GIF BANNER ---- */
 .gif-banner {
   border: 1px solid var(--panel-edge);
@@ -409,6 +419,14 @@ footer {
   padding-top: 20px;
 }
 footer a { color: var(--cyan); text-decoration: none; }
+
+.by-jose {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  color: var(--muted-2);
+  letter-spacing: 2px;
+  margin-top: 14px;
+}
 
 .ww-credit {
   display: flex;

@@ -35,6 +35,7 @@
     <select class="loc-select" id="loc-select" aria-label="Select dive location"></select>
     <span class="loc-bar-note" id="loc-bar-note"></span>
   </div>
+  <div class="date-bar" id="date-bar"></div>
 
   <!-- HERO GIF -->
   <div class="gif-banner">
@@ -86,6 +87,7 @@
     Conditions scored for shore/boat freediving on the east coast of Australia. This is a planning aid, not a
     safety guarantee — always check the <a href="http://www.bom.gov.au/nsw/warnings/" target="_blank" rel="noopener">BoM marine warnings</a>,
     dive with a buddy, and make the final call at the water's edge.
+    <div class="by-jose">By Jose</div>
     <div class="ww-credit">
       <span class="ww-badge">Powered by</span>
       <a href="https://www.willyweather.com.au/info/api.html" target="_blank" rel="noopener" class="ww-link">WillyWeather</a>
@@ -503,6 +505,64 @@ function scoreKingfishLikelihood(d, now){
   return { score: Math.round(raw*100), season, vizScore, baitScore, timeScore, tempScore, month, hour };
 }
 
+/* One tip per day, chosen by current conditions. */
+const ALL_KF_TIPS = [
+  {
+    id:'bait', reason:'READING THE SURFACE',
+    text:`Look for bait being pushed up — diving birds or skipping fish mean kings are below. Don't bother diving a dead, lifeless ocean.`,
+  },
+  {
+    id:'depth', reason:'MID-DAY HUNTING',
+    text:`Kings push deeper in bright mid-day light, typically 10–18 m on the edge of structure. Work the water column down, not just the reef top.`,
+  },
+  {
+    id:'still', reason:'CALM CONDITIONS',
+    text:`In flat, clear water kings can see you clearly too. Stay motionless at depth and let them come to you — they're curious and will circle if you don't spook them.`,
+  },
+  {
+    id:'current', reason:'READING THE WATER',
+    text:`Current lines between clean and murky water concentrate bait schools. Patrol these colour-change edges — kingfish stack here waiting for an ambush.`,
+  },
+  {
+    id:'shot', reason:'SHOT PLACEMENT',
+    text:`Best placement is behind the pec fin along the lateral line for a spine hit. It keeps the fish on the shaft and stops the thrashing that loses fish on the surface.`,
+  },
+  {
+    id:'tide', reason:'TIDAL MOVEMENT',
+    text:`The run-in on a high tide pushes clean, cooler ocean water over the reef. Plan to be in the water 30 min before the tide peaks — this is when kings move in to feed.`,
+  },
+];
+
+function selectDailyTip(d, now){
+  const hour     = new Date(now).getHours();
+  const dayOfMon = new Date(now).getDate();
+  const nextTides = (d.tides||[]).filter(t=>t.time>now).sort((a,b)=>a.time-b.time);
+  const minsToNext = nextTides.length ? (nextTides[0].time-now)/60000 : Infinity;
+
+  // Approaching high tide within 90 min → tide tip
+  if(minsToNext < 90 && nextTides[0]?.type==='high')
+    return ALL_KF_TIPS.find(t=>t.id==='tide');
+
+  // Dawn or dusk feeding window → bait tip
+  if((hour>=5&&hour<=9)||(hour>=16&&hour<=19))
+    return ALL_KF_TIPS.find(t=>t.id==='bait');
+
+  // Mid-day → depth tip
+  if(hour>=11&&hour<=15)
+    return ALL_KF_TIPS.find(t=>t.id==='depth');
+
+  // Active swell with bait moving → current-line tip
+  if(d.swellHeight>=0.3&&d.swellHeight<=1.2)
+    return ALL_KF_TIPS.find(t=>t.id==='current');
+
+  // Calm/glassy → staying-still tip
+  if(d.windKn<=7)
+    return ALL_KF_TIPS.find(t=>t.id==='still');
+
+  // Fallback: rotate by day of month
+  return ALL_KF_TIPS[dayOfMon % ALL_KF_TIPS.length];
+}
+
 function kingfishLabel(score){
   if(score>=55) return{word:'PRIME',    color:'var(--go)',     sub:'Multiple factors aligning. Kings are in range and actively hunting — work the headland.'};
   if(score>=32) return{word:'LIKELY',   color:'var(--go)',     sub:'Good encounter probability. Check Ben Buckler and the southern reef edges.'};
@@ -574,17 +634,7 @@ function renderKingfishIntel(d, now){
       `<div class="kf-season-hd">SEASONAL PRESENCE — BONDI</div>`+
       `<div class="kf-months">${monthDots}</div>`+
       `<div class="kf-field-note">Hotspot: Ben Buckler headland (N end) on incoming tide. SSE swell pushes bait onto the reef — kings follow from below.</div>`+
-      `<div class="kf-tips-hd">Field tips — yellowtail kingfish</div>`+
-      `<div class="kf-tips">`+
-        [
-          `Look for bait being pushed to the surface — diving birds or skipping fish = kings below. Don't dive on a dead flat ocean with no life.`,
-          `Kings hold on the deep edge of structure, typically 10–18 m. Work the whole water column, not just the reef top.`,
-          `Stay still and let them come to you. Kingfish are curious but bolt at sudden kicks or surface splashing. Float motionless and watch them circle.`,
-          `Current lines between clean and murky water concentrate bait schools. Patrol these colour-change edges — kings stack here.`,
-          `Best shot placement is behind the pec fin along the lateral line. A head or spine shot keeps the fish on the shaft and avoids a long chase.`,
-          `Incoming tide on a high pushes clean, cooler ocean water over the reef — this is when kings move in to feed.`,
-        ].map(t=>`<div class="kf-tip"><span class="kf-tip-arrow">▸</span>${t}</div>`).join('')+
-      `</div>`+
+      (()=>{ const tip=selectDailyTip(d,now); return `<div class="kf-tips-hd">Field tip · ${tip.reason}</div><div class="kf-tips"><div class="kf-tip"><span class="kf-tip-arrow">▸</span>${tip.text}</div></div>`; })()+
     `</div>`;
 }
 
@@ -808,8 +858,23 @@ function initLocationSelector(){
 }
 
 /* boot */
+(()=>{
+  const d=new Date();
+  const days=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  const months=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  document.getElementById('date-bar').textContent =
+    days[d.getDay()]+' · '+d.getDate()+' '+months[d.getMonth()]+' '+d.getFullYear();
+})();
 initLocationSelector();
 load();
 </script>
 </body>
 </html>
+
+
+// for the GIF: make this image change depending on the rating IRL
+//for Limiting factos: make this information clearer
+// for the summar widgets: add incons
+// change the possible rating for kingfish encounter 
+// limit the field tips to just the tip of the day 
+// where it gives the 'dive score by hour' add a graph here. 
