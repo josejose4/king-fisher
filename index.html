@@ -427,23 +427,96 @@ function nextTideLabel(tides, now){
 function wetsuitTip(c){ return c>=22?'2–3 mm, easy':c>=19?'3–5 mm':c>=16?'5 mm + hood':'7 mm, it bites'; }
 
 function renderTimeline(d, now){
-  const bars=document.getElementById('tl-bars'); bars.innerHTML='';
-  const hours=d.hourly.filter(h=>h.time>=d.sunrise && h.time<=d.sunset);
-  let best=null;
-  hours.forEach(h=>{
-    h._score = hourlyScore({...h, tides:d.tides}, h.time);
-    if(!best||h._score>best._score) best=h;
-  });
-  hours.forEach(h=>{
-    const col=document.createElement('div'); col.className='tl-col'+(best&&h.time===best.time?' best':'');
-    const c = h._score>=75?'var(--go)':h._score>=50?'var(--caution)':'var(--nogo)';
-    col.innerHTML=`<div class="col-bar" style="height:${Math.max(6,h._score)}%;background:${c}"></div>
-      <div class="hr">${new Date(h.time).getHours()}</div>`;
-    col.title=`${fmtTime(h.time)} — score ${h._score}`;
-    bars.appendChild(col);
-  });
+  const container = document.getElementById('tl-bars');
+  const hours = d.hourly.filter(h => h.time >= d.sunrise && h.time <= d.sunset);
+  hours.forEach(h => { h._score = hourlyScore({...h, tides:d.tides}, h.time); });
+
+  let best = null;
+  hours.forEach(h => { if(!best || h._score > best._score) best = h; });
   document.getElementById('best-window').textContent =
     best ? `▲ Best window ~${fmtTime(best.time)} (score ${best._score})` : '—';
+
+  if(!hours.length){ container.innerHTML = ''; return; }
+
+  // ---- SVG layout ----
+  const W=560, H=160;
+  const P={top:12, right:10, bottom:26, left:34};
+  const pw=W-P.left-P.right, ph=H-P.top-P.bottom;
+  const n=hours.length;
+  const xOf=i => P.left + (n>1 ? (i/(n-1))*pw : pw/2);
+  const yOf=s => P.top  + (1 - Math.min(100,Math.max(0,s))/100)*ph;
+  const y0=yOf(0), y50=yOf(50), y75=yOf(75), y100=yOf(100);
+
+  // Area fill polygon
+  const areaPts = [`${xOf(0).toFixed(1)},${y0.toFixed(1)}`,
+    ...hours.map((h,i)=>`${xOf(i).toFixed(1)},${yOf(h._score).toFixed(1)}`),
+    `${xOf(n-1).toFixed(1)},${y0.toFixed(1)}`].join(' ');
+
+  // Coloured line segments (colour = average score of the two endpoints)
+  const segs = hours.slice(0,-1).map((h,i)=>{
+    const avg=(h._score+hours[i+1]._score)/2;
+    const col=avg>=75?'#22c9d8':avg>=50?'#ff832f':'#e03535';
+    return `<line x1="${xOf(i).toFixed(1)}" y1="${yOf(h._score).toFixed(1)}"
+                  x2="${xOf(i+1).toFixed(1)}" y2="${yOf(hours[i+1]._score).toFixed(1)}"
+                  stroke="${col}" stroke-width="2.5" stroke-linecap="round"/>`;
+  }).join('');
+
+  // Dots at each hour
+  const dots = hours.map((h,i)=>{
+    const col=h._score>=75?'#22c9d8':h._score>=50?'#ff832f':'#e03535';
+    const isBest=best&&h.time===best.time;
+    return `<circle cx="${xOf(i).toFixed(1)}" cy="${yOf(h._score).toFixed(1)}"
+              r="${isBest?5:3.5}" fill="${col}" stroke="#091520" stroke-width="${isBest?2:1.5}">
+              <title>${fmtTime(h.time)} — score ${h._score}</title></circle>`;
+  }).join('');
+
+  // Current time marker
+  const ni=hours.reduce((b,h,i)=>Math.abs(h.time-now)<Math.abs(hours[b].time-now)?i:b,0);
+  const nowLine=Math.abs(hours[ni].time-now)<2*3600000
+    ?`<line x1="${xOf(ni).toFixed(1)}" y1="${P.top}" x2="${xOf(ni).toFixed(1)}" y2="${y0.toFixed(1)}"
+           stroke="rgba(255,255,255,.2)" stroke-width="1" stroke-dasharray="3 4"/>`:'';
+
+  // Best window marker
+  const bi=best?hours.indexOf(best):-1;
+  const bestLine=bi>=0
+    ?`<line x1="${xOf(bi).toFixed(1)}" y1="${P.top}" x2="${xOf(bi).toFixed(1)}" y2="${y0.toFixed(1)}"
+           stroke="rgba(34,201,216,.35)" stroke-width="1" stroke-dasharray="4 4"/>`:'';
+
+  // Y labels
+  const yLbls=[75,50,25].map(v=>`<text x="${(P.left-5).toFixed(1)}" y="${(yOf(v)+3.5).toFixed(1)}"
+    font-family="Share Tech Mono,monospace" font-size="9" fill="rgba(74,136,152,.8)" text-anchor="end">${v}</text>`).join('');
+
+  // X labels (every 2 hours if dense)
+  const step=n>10?2:1;
+  const xLbls=hours.map((h,i)=>{
+    if(i%step!==0 && i!==n-1) return '';
+    return `<text x="${xOf(i).toFixed(1)}" y="${(H-4).toFixed(1)}"
+      font-family="Share Tech Mono,monospace" font-size="10" fill="rgba(74,136,152,.85)"
+      text-anchor="middle">${new Date(h.time).getHours()}</text>`;
+  }).join('');
+
+  container.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">
+    <defs>
+      <linearGradient id="tl-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#22c9d8" stop-opacity=".14"/>
+        <stop offset="100%" stop-color="#22c9d8" stop-opacity=".01"/>
+      </linearGradient>
+      <clipPath id="tl-clip"><rect x="${P.left}" y="${P.top}" width="${pw}" height="${ph}"/></clipPath>
+    </defs>
+    <rect x="${P.left}" y="${y100.toFixed(1)}" width="${pw}" height="${(y75-y100).toFixed(1)}" fill="rgba(34,201,216,.05)"/>
+    <rect x="${P.left}" y="${y75.toFixed(1)}"  width="${pw}" height="${(y50-y75).toFixed(1)}"  fill="rgba(255,131,47,.04)"/>
+    <rect x="${P.left}" y="${y50.toFixed(1)}"  width="${pw}" height="${(y0-y50).toFixed(1)}"   fill="rgba(224,53,53,.04)"/>
+    <line x1="${P.left}" y1="${y75.toFixed(1)}" x2="${(P.left+pw).toFixed(1)}" y2="${y75.toFixed(1)}" stroke="rgba(255,255,255,.06)" stroke-width="1" stroke-dasharray="3 6"/>
+    <line x1="${P.left}" y1="${y50.toFixed(1)}" x2="${(P.left+pw).toFixed(1)}" y2="${y50.toFixed(1)}" stroke="rgba(255,255,255,.06)" stroke-width="1" stroke-dasharray="3 6"/>
+    ${yLbls}
+    <polygon points="${areaPts}" fill="url(#tl-grad)" clip-path="url(#tl-clip)"/>
+    ${nowLine}${bestLine}
+    <g clip-path="url(#tl-clip)">${segs}</g>
+    <g clip-path="url(#tl-clip)">${dots}</g>
+    <line x1="${P.left}" y1="${P.top}" x2="${P.left}" y2="${y0.toFixed(1)}" stroke="rgba(34,201,216,.15)" stroke-width="1"/>
+    <line x1="${P.left}" y1="${y0.toFixed(1)}" x2="${(P.left+pw).toFixed(1)}" y2="${y0.toFixed(1)}" stroke="rgba(34,201,216,.15)" stroke-width="1"/>
+    ${xLbls}
+  </svg>`;
 }
 
 

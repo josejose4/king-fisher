@@ -402,11 +402,7 @@ button.ghost:hover { border-color: var(--cyan); color: var(--cyan); }
   text-transform: uppercase;
 }
 .tl-best { font-size: 11px; color: var(--go); letter-spacing: 1px; text-transform: uppercase; }
-.tl-bars { display: flex; gap: 4px; align-items: flex-end; height: 110px; }
-.tl-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; }
-.tl-col .col-bar { width: 100%; transition: height .6s ease; min-height: 3px; }
-.tl-col .hr { font-size: 11px; color: var(--muted-2); white-space: nowrap; }
-.tl-col.best .hr { color: var(--go); }
+.tl-bars { width: 100%; }
 
 /* ---- FOOTER ---- */
 footer {
