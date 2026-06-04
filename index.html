@@ -23,7 +23,7 @@
     </div>
     <div class="top-actions">
       <span class="pill" id="updated-pill">SOURCE <b id="source-tag">DEMO</b></span>
-      <button class="ghost" id="open-settings">⚙ MISSION CONFIG</button>
+      <button class="ghost" id="open-settings">⚙ Settings</button>
     </div>
   </header>
 
@@ -100,7 +100,7 @@
 <!-- SETTINGS MODAL -->
 <div class="scrim" id="scrim">
   <div class="modal">
-    <h2>Mission Config</h2>
+    <h2>Settings</h2>
     <p class="lead">Demo runs on baked-in sample data so you can see the app work. For live readings, point it at your
       WillyWeather proxy (a 15-line serverless function — your API key stays server-side, never in this page).</p>
     <div class="toggle-row">
@@ -818,6 +818,24 @@ function setMode(m){
 document.getElementById('in-loc').addEventListener('change',e=>{
   document.getElementById('in-loc-custom').style.display = e.target.value==='custom'?'block':'none';
 });
+function saveState(){
+  try{
+    localStorage.setItem('kf-settings', JSON.stringify({
+      mode: state.mode, proxy: state.proxy,
+      locationId: state.locationId, locationName: state.locationName,
+    }));
+  }catch(e){}
+}
+function loadState(){
+  try{
+    const s = JSON.parse(localStorage.getItem('kf-settings')||'{}');
+    if(s.mode)         state.mode         = s.mode;
+    if(s.proxy)        state.proxy        = s.proxy;
+    if(s.locationId)   state.locationId   = s.locationId;
+    if(s.locationName) state.locationName = s.locationName;
+  }catch(e){}
+}
+
 function applySettings(){
   state.proxy=document.getElementById('in-proxy').value.trim();
   const sel=document.getElementById('in-loc').value;
@@ -827,6 +845,7 @@ function applySettings(){
     st.style.color='var(--nogo)'; st.textContent='⚠ Live mode needs a proxy URL.'; return;
   }
   st.style.color='var(--go)'; st.textContent='✓ Applied.';
+  saveState();
   closeModal(); load();
 }
 document.getElementById('open-settings').addEventListener('click',openModal);
@@ -848,6 +867,7 @@ function initLocationSelector(){
     state.locationId   = loc.id;
     state.locationName = loc.name;
     note.textContent   = state.mode === 'live' ? 'ID: ' + loc.id : '';
+    saveState();
     load();
   });
   // show ID hint in live mode
@@ -858,6 +878,10 @@ function initLocationSelector(){
 }
 
 /* boot */
+loadState();
+// restore mode toggle + proxy input from saved state
+setMode(state.mode);
+document.getElementById('in-proxy').value = state.proxy || '';
 (()=>{
   const d=new Date();
   const days=['SUN','MON','TUE','WED','THU','FRI','SAT'];
@@ -878,3 +902,4 @@ load();
 // change the possible rating for kingfish encounter 
 // limit the field tips to just the tip of the day 
 // where it gives the 'dive score by hour' add a graph here. 
+// notification for when Kingfish likelihood will be high the next day...
